@@ -37,6 +37,6 @@ public class UserService {
             throw new InvalidRequestException("잘못된 비밀번호입니다.");
         }
 
-        user.changePassword(passwordEncoder.encode(userChangePasswordRequest.getNewPassword()));
+        user.updatePassword(passwordEncoder.encode(userChangePasswordRequest.getNewPassword()));
     }
 }

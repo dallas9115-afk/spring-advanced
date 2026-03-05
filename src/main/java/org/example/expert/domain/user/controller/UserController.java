@@ -3,6 +3,7 @@ package org.example.expert.domain.user.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.expert.domain.common.annotation.Auth;
+import org.example.expert.domain.common.dto.ApiResponse; // 추가
 import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.user.dto.request.UserChangePasswordRequest;
 import org.example.expert.domain.user.dto.response.UserResponse;
@@ -17,15 +18,16 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/users/{userId}")
-    public ResponseEntity<UserResponse> getUser(@PathVariable long userId) {
-        return ResponseEntity.ok(userService.getUser(userId));
+    public ResponseEntity<ApiResponse<UserResponse>> getUser(@PathVariable long userId) {
+        return ResponseEntity.ok(ApiResponse.success(userService.getUser(userId)));
     }
 
     @PutMapping("/users/password")
-    public void changePassword(
+    public ResponseEntity<ApiResponse<Void>> changePassword(
             @Auth AuthUser authUser,
-            @Valid @RequestBody UserChangePasswordRequest userChangePasswordRequest // @Valid 추가
+            @Valid @RequestBody UserChangePasswordRequest userChangePasswordRequest
     ) {
         userService.changePassword(authUser.getId(), userChangePasswordRequest);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }
