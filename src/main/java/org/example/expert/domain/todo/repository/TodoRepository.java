@@ -27,4 +27,10 @@ public interface TodoRepository extends JpaRepository<Todo, Long> {
     @EntityGraph(attributePaths = {"user"})
     Page<Todo> findAllByOrderByModifiedAtDesc(Pageable pageable);
 
+    // 단건 조회 시 N+1 해결
+    // TodoService에서 호출하는 이름과 똑같이 만들어주었음.
+    @EntityGraph(attributePaths = {"user"})
+    @Query("SELECT t FROM Todo t WHERE t.id = :todoId")
+    Optional<Todo> findByIdWithUser(@Param("todoId") Long todoId);
+
 }

@@ -60,6 +60,11 @@ public class ManagerService {
         Todo todo = todoRepository.findById(todoId)
                 .orElseThrow(() -> new InvalidRequestException("Todo not found"));
 
+        // 해당 할일의 작성자가 있는지 확인함
+        if (todo.getUser() == null) {
+            throw new InvalidRequestException("해당 할일의 작성자가 존재하지 않습니다.");
+        }
+
         List<Manager> managerList = managerRepository.findByTodoIdWithUser(todo.getId());
 
         List<ManagerResponse> dtoList = new ArrayList<>();
