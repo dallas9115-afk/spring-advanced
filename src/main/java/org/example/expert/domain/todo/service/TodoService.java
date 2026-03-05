@@ -11,6 +11,7 @@ import org.example.expert.domain.todo.entity.Todo;
 import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.user.dto.response.UserResponse;
 import org.example.expert.domain.user.entity.User;
+import org.example.expert.domain.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,11 +23,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class TodoService {
 
     private final TodoRepository todoRepository;
+    private final UserRepository userRepository; // 주입 추가
     private final WeatherClient weatherClient;
 
     @Transactional
     public TodoSaveResponse saveTodo(AuthUser authUser, TodoSaveRequest todoSaveRequest) {
-        User user = User.fromAuthUser(authUser);
+        // DTO 변환 대신 DB에서 실제 유저 엔티티 조회
+        User user = userRepository.findById(authUser.getId())
+                .orElseThrow(() -> new InvalidRequestException("User not found"));
 
         String weather = weatherClient.getTodayWeather();
 
@@ -50,7 +54,6 @@ public class TodoService {
     @Transactional(readOnly = true)
     public Page<TodoResponse> getTodos(int page, int size) {
         Pageable pageable = PageRequest.of(page - 1, size);
-
         Page<Todo> todos = todoRepository.findAllByOrderByModifiedAtDesc(pageable);
 
         return todos.map(todo -> new TodoResponse(
@@ -80,5 +83,17 @@ public class TodoService {
                 todo.getCreatedAt(),
                 todo.getModifiedAt()
         );
+    }
+
+    @Transactional
+    public void deleteTodo(long todoId, AuthUser authUser) {
+        Todo todo = todoRepository.findById(todoId)
+                .orElseThrow(() -> new InvalidRequestException("Todo not found"));
+
+        if (!todo.getUser().getId().equals(authUser.getId())) {
+            throw new InvalidRequestException("작성자만 삭제할 수 있습니다.");
+        }
+
+        todoRepository.delete(todo); // 매니저와 댓글이 모두 삭제되는 옵션 구현
     }
 }
