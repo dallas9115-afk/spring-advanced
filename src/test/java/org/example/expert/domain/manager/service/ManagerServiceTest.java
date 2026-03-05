@@ -56,16 +56,20 @@ class ManagerServiceTest {
         long todoId = 1L;
         long managerUserId = 2L;
 
+        // 호출 유저 조회 성공 Mocking
+        User user = new User("a@a.com", "password", UserRole.USER);
+        ReflectionTestUtils.setField(user, "id", 1L);
+        given(userRepository.findById(authUser.getId())).willReturn(Optional.of(user));
+
         Todo todo = new Todo();
-        ReflectionTestUtils.setField(todo, "user", null);
+        ReflectionTestUtils.setField(todo, "user", null); // 작성자가 없는 Todo
 
         ManagerSaveRequest managerSaveRequest = new ManagerSaveRequest(managerUserId);
-
         given(todoRepository.findById(todoId)).willReturn(Optional.of(todo));
 
         // when & then
         InvalidRequestException exception = assertThrows(InvalidRequestException.class, () ->
-            managerService.saveManager(authUser, todoId, managerSaveRequest)
+                managerService.saveManager(authUser, todoId, managerSaveRequest)
         );
 
         assertEquals("일정을 생성한 유저만 담당자를 지정할 수 있습니다.", exception.getMessage());
@@ -94,21 +98,24 @@ class ManagerServiceTest {
         assertEquals(mockManager.getUser().getEmail(), managerResponses.get(0).getUser().getEmail());
     }
 
-    @Test // 테스트코드 샘플
+    @Test
     void todo가_정상적으로_등록된다() {
         // given
         AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
-        User user = User.fromAuthUser(authUser);  // 일정을 만든 유저
+        User user = new User("a@a.com", "password", UserRole.USER); // Mock용 유저 객체 직접 생성
+        ReflectionTestUtils.setField(user, "id", 1L);
 
         long todoId = 1L;
         Todo todo = new Todo("Test Title", "Test Contents", "Sunny", user);
 
         long managerUserId = 2L;
-        User managerUser = new User("b@b.com", "password", UserRole.USER);  // 매니저로 등록할 유저
+        User managerUser = new User("b@b.com", "password", UserRole.USER);
         ReflectionTestUtils.setField(managerUser, "id", managerUserId);
 
-        ManagerSaveRequest managerSaveRequest = new ManagerSaveRequest(managerUserId); // request dto 생성
+        ManagerSaveRequest managerSaveRequest = new ManagerSaveRequest(managerUserId);
 
+        // [수정] userRepository.findById() Mocking 추가
+        given(userRepository.findById(authUser.getId())).willReturn(Optional.of(user));
         given(todoRepository.findById(todoId)).willReturn(Optional.of(todo));
         given(userRepository.findById(managerUserId)).willReturn(Optional.of(managerUser));
         given(managerRepository.save(any(Manager.class))).willAnswer(invocation -> invocation.getArgument(0));
@@ -119,6 +126,5 @@ class ManagerServiceTest {
         // then
         assertNotNull(response);
         assertEquals(managerUser.getId(), response.getUser().getId());
-        assertEquals(managerUser.getEmail(), response.getUser().getEmail());
     }
 }

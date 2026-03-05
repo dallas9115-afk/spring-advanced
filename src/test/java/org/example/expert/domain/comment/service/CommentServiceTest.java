@@ -6,16 +6,17 @@ import org.example.expert.domain.comment.entity.Comment;
 import org.example.expert.domain.comment.repository.CommentRepository;
 import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.common.exception.InvalidRequestException;
-import org.example.expert.domain.common.exception.ServerException;
 import org.example.expert.domain.todo.entity.Todo;
 import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.enums.UserRole;
+import org.example.expert.domain.user.repository.UserRepository; // 1. Import 추가
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -31,6 +32,10 @@ class CommentServiceTest {
     private CommentRepository commentRepository;
     @Mock
     private TodoRepository todoRepository;
+
+    @Mock
+    private UserRepository userRepository; // userRepository Mock 객체 추가
+
     @InjectMocks
     private CommentService commentService;
 
@@ -41,14 +46,19 @@ class CommentServiceTest {
         CommentSaveRequest request = new CommentSaveRequest("contents");
         AuthUser authUser = new AuthUser(1L, "email", UserRole.USER);
 
+        // 유저 조회는 성공하도록 Mocking
+        User user = new User("email", "password", UserRole.USER);
+        ReflectionTestUtils.setField(user, "id", 1L);
+        given(userRepository.findById(authUser.getId())).willReturn(Optional.of(user));
+
+        // 할 일을 못 찾는 상황 Mocking
         given(todoRepository.findById(anyLong())).willReturn(Optional.empty());
 
-        // ServerException.class -> InvalidRequestException.class로 수정
+        // when & then
         InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> {
             commentService.saveComment(authUser, todoId, request);
         });
 
-        // then
         assertEquals("Todo not found", exception.getMessage());
     }
 
@@ -58,10 +68,14 @@ class CommentServiceTest {
         long todoId = 1;
         CommentSaveRequest request = new CommentSaveRequest("contents");
         AuthUser authUser = new AuthUser(1L, "email", UserRole.USER);
-        User user = User.fromAuthUser(authUser);
+
+        User user = new User("email", "password", UserRole.USER);
+        ReflectionTestUtils.setField(user, "id", 1L);
+
         Todo todo = new Todo("title", "title", "contents", user);
         Comment comment = new Comment(request.getContents(), user, todo);
 
+        given(userRepository.findById(authUser.getId())).willReturn(Optional.of(user));
         given(todoRepository.findById(anyLong())).willReturn(Optional.of(todo));
         given(commentRepository.save(any())).willReturn(comment);
 
