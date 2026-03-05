@@ -25,14 +25,15 @@ public class AuthService {
 
     @Transactional
     public SignupResponse signup(SignupRequest signupRequest) {
-
-        String encodedPassword = passwordEncoder.encode(signupRequest.getPassword());
-
-        UserRole userRole = UserRole.of(signupRequest.getUserRole());
-
+        // (Early Return 활용) 중복 체크를 가장 먼저 수행
+        // 1. 중복 시 뒤의 passwordEncoder.encode() 로직이 실행되지 않음
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
             throw new InvalidRequestException("이미 존재하는 이메일입니다.");
         }
+
+        // 2. 검증을 통과한 후에 로직 및 객체 생성 수행
+        String encodedPassword = passwordEncoder.encode(signupRequest.getPassword());
+        UserRole userRole = UserRole.of(signupRequest.getUserRole());
 
         User newUser = new User(
                 signupRequest.getEmail(),
@@ -48,14 +49,17 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public SigninResponse signin(SigninRequest signinRequest) {
+        // 1. (Early Return) 존재하지 않는 유저인지 먼저 확인
         User user = userRepository.findByEmail(signinRequest.getEmail()).orElseThrow(
                 () -> new InvalidRequestException("가입되지 않은 유저입니다."));
 
-        // 로그인 시 이메일과 비밀번호가 일치하지 않을 경우 401을 반환합니다.
+        // 2. (Early Return) 비밀번호가 일치하는지 확인
+        // 일치하지 않으면 이후의 createToken() 로직을 수행하지 않음
         if (!passwordEncoder.matches(signinRequest.getPassword(), user.getPassword())) {
             throw new AuthException("잘못된 비밀번호입니다.");
         }
 
+        // 3. 모든 검증 통과 후 메인 비즈니스 로직(토큰 생성) 실행
         String bearerToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
 
         return new SigninResponse(bearerToken);
