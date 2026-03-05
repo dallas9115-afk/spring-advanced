@@ -10,4 +10,7 @@ import java.util.List;
 public interface ManagerRepository extends JpaRepository<Manager, Long> {
     @Query("SELECT m FROM Manager m JOIN FETCH m.user WHERE m.todo.id = :todoId")
     List<Manager> findByTodoIdWithUser(@Param("todoId") Long todoId);
+
+    // 추가: 할 일 ID와 유저 ID로 등록 여부 확인
+    boolean existsByTodoIdAndUserId(Long todoId, Long userId);
 }

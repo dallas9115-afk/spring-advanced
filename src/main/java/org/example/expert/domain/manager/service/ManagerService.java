@@ -31,7 +31,9 @@ public class ManagerService {
     @Transactional
     public ManagerSaveResponse saveManager(AuthUser authUser, long todoId, ManagerSaveRequest managerSaveRequest) {
         // 일정을 만든 유저
-        User user = User.fromAuthUser(authUser);
+        User user = userRepository.findById(authUser.getId())
+                .orElseThrow(() -> new InvalidRequestException("User not found"));
+
         Todo todo = todoRepository.findById(todoId)
                 .orElseThrow(() -> new InvalidRequestException("Todo not found"));
 
@@ -46,6 +48,10 @@ public class ManagerService {
 
         if (ObjectUtils.nullSafeEquals(user.getId(), managerUser.getId())) {
             throw new InvalidRequestException("일정 작성자는 본인을 담당자로 등록할 수 없습니다.");
+        }
+
+        if (managerRepository.existsByTodoIdAndUserId(todoId, managerSaveRequest.getManagerUserId())) {
+            throw new InvalidRequestException("이미 해당 일정의 담당자로 등록된 유저입니다.");
         }
 
         Manager newManagerUser = new Manager(managerUser, todo);
