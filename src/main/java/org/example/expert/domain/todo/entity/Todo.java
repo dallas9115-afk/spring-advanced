@@ -27,10 +27,11 @@ public class Todo extends Timestamped {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @OneToMany(mappedBy = "todo", cascade = CascadeType.REMOVE)
+    // Manager와 Comment 에 대해 삭제 전이(Cascading) 옵션 추가
+    @OneToMany(mappedBy = "todo", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 
-    @OneToMany(mappedBy = "todo", cascade = CascadeType.PERSIST)
+    @OneToMany(mappedBy = "todo", cascade = CascadeType.ALL, orphanRemoval = true) // PERSIST -> ALL로 변경
     private List<Manager> managers = new ArrayList<>();
 
     public Todo(String title, String contents, String weather, User user) {

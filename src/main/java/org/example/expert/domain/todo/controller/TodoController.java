@@ -3,6 +3,7 @@ package org.example.expert.domain.todo.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.expert.domain.common.annotation.Auth;
+import org.example.expert.domain.common.dto.ApiResponse; // 추가
 import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.todo.dto.request.TodoSaveRequest;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
@@ -19,23 +20,32 @@ public class TodoController {
     private final TodoService todoService;
 
     @PostMapping("/todos")
-    public ResponseEntity<TodoSaveResponse> saveTodo(
+    public ResponseEntity<ApiResponse<TodoSaveResponse>> saveTodo(
             @Auth AuthUser authUser,
             @Valid @RequestBody TodoSaveRequest todoSaveRequest
     ) {
-        return ResponseEntity.ok(todoService.saveTodo(authUser, todoSaveRequest));
+        return ResponseEntity.ok(ApiResponse.success(todoService.saveTodo(authUser, todoSaveRequest)));
     }
 
     @GetMapping("/todos")
-    public ResponseEntity<Page<TodoResponse>> getTodos(
+    public ResponseEntity<ApiResponse<Page<TodoResponse>>> getTodos(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(todoService.getTodos(page, size));
+        return ResponseEntity.ok(ApiResponse.success(todoService.getTodos(page, size)));
     }
 
     @GetMapping("/todos/{todoId}")
-    public ResponseEntity<TodoResponse> getTodo(@PathVariable long todoId) {
-        return ResponseEntity.ok(todoService.getTodo(todoId));
+    public ResponseEntity<ApiResponse<TodoResponse>> getTodo(@PathVariable long todoId) {
+        return ResponseEntity.ok(ApiResponse.success(todoService.getTodo(todoId)));
+    }
+
+    @DeleteMapping("/todos/{todoId}")
+    public ResponseEntity<ApiResponse<Void>> deleteTodo(
+            @Auth AuthUser authUser,
+            @PathVariable long todoId
+    ) {
+        todoService.deleteTodo(todoId, authUser);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }
